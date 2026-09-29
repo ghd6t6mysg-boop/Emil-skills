@@ -1,0 +1,555 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Brain Circuit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: one narrow column like a gym circuit card. Home lists today's stations; a drill takes the whole column. */
+:root{
+  --bg:#E6EAEF; --surface:#F8FAFC; --ink:#121923; --muted:#566273; --line:#C9D1DB;
+  --accent:#2645D4; --accent-ink:#FFFFFF; --hi:#F4C53D; --hi-ink:#1C1500;
+  --good:#17804F; --bad:#C3353A; --tile:#141A23; --tile-ink:#F3F5F8;
+  --f-display:"Archivo","Arial Narrow",system-ui,sans-serif;
+  --f-body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E131A; --surface:#171E28; --ink:#E5EAF0; --muted:#93A0B1; --line:#2A3441;
+  --accent:#7390FF; --accent-ink:#0A0F1E; --hi:#F4C53D; --hi-ink:#1C1500;
+  --good:#4BC389; --bad:#F2696D; --tile:#0A0E14; --tile-ink:#F3F5F8; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E131A; --surface:#171E28; --ink:#E5EAF0; --muted:#93A0B1; --line:#2A3441;
+  --accent:#7390FF; --accent-ink:#0A0F1E; --hi:#F4C53D; --hi-ink:#1C1500;
+  --good:#4BC389; --bad:#F2696D; --tile:#0A0E14; --tile-ink:#F3F5F8; color-scheme:dark}
+
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5}
+.wrap{max-width:720px;margin:0 auto;padding-inline:16px;padding-block:24px 56px;display:flex;flex-direction:column;gap:20px}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+h1,h2,h3{margin:0;text-wrap:balance}
+.display{font-family:var(--f-display);font-stretch:125%;font-weight:850;letter-spacing:-.01em;line-height:1.02}
+.eyebrow{font-size:.75rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+kbd{font-family:var(--f-mono);font-size:.7rem;padding:1px 5px;border:1px solid currentColor;border-radius:4px;opacity:.7;margin-left:8px}
+@media (hover:none){kbd{display:none}}
+
+/* header */
+.top{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap}
+.brand{font-size:clamp(2.1rem,8vw,3.2rem)}
+.brand span{color:var(--accent)}
+.today{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.streak{background:var(--hi);color:var(--hi-ink);font-weight:700;border-radius:999px;padding:3px 12px;font-size:.9rem}
+.streak.zero{background:transparent;color:var(--muted);border:1px solid var(--line)}
+
+/* surfaces */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px;display:flex;flex-direction:column;gap:16px}
+.card-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.card-head h1,.card-head h2{font-size:1.35rem}
+.section-title{font-size:1rem;font-weight:700}
+
+/* stations */
+.stations{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.stations li{display:grid;grid-template-columns:2.4rem 1fr auto;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+.stations li:first-child{border-top:0}
+.stations .num{font-family:var(--f-display);font-stretch:125%;font-weight:800;font-size:1.5rem;color:var(--muted)}
+.stations li.done .num{color:var(--good)}
+.stations li.next .num{color:var(--accent)}
+.stations strong{display:block;font-size:1.05rem}
+.stations .meta{font-size:.85rem;color:var(--muted)}
+.stations .best{font-size:.8rem;color:var(--muted);text-align:right}
+.stations .best b{display:block;color:var(--ink);font-size:1rem}
+
+/* buttons */
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.btn{background:var(--accent);color:var(--accent-ink);border:0;border-radius:10px;padding:13px 20px;font-weight:700;font-size:1rem;display:inline-flex;align-items:center;justify-content:center}
+.btn:hover{filter:brightness(1.08)}
+.btn.big{padding:16px 22px;font-size:1.1rem;width:100%}
+.btn.wide{width:100%;max-width:340px}
+.ghost{background:transparent;border:1px solid var(--line);border-radius:10px;padding:10px 16px;color:var(--ink)}
+.ghost:hover{border-color:var(--muted)}
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+
+/* history */
+.days{display:grid;grid-template-columns:repeat(14,1fr);gap:6px}
+.day{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:.7rem;color:var(--muted)}
+.day i{display:block;width:100%;aspect-ratio:1;border-radius:6px;border:1px solid var(--line);max-width:100%}
+.day.on i{background:var(--accent);border-color:var(--accent)}
+.day.now i{outline:2px solid var(--hi);outline-offset:1px}
+.practice{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.practice button{text-align:left;background:transparent;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.practice button:hover{border-color:var(--accent)}
+.practice small{display:block;color:var(--muted);font-size:.78rem}
+
+/* intro / result */
+.intro h2{font-size:clamp(2rem,7vw,2.8rem)}
+.lede{font-size:1.15rem;margin:0}
+.how{margin:0;padding-left:1.2rem;display:flex;flex-direction:column;gap:4px;max-width:60ch}
+.facts{display:flex;gap:18px;flex-wrap:wrap;font-size:.85rem;color:var(--muted)}
+.facts b{color:var(--ink)}
+.bigscore{font-family:var(--f-display);font-stretch:125%;font-weight:850;font-size:clamp(3.5rem,16vw,5.5rem);line-height:1}
+.pb{display:inline-block;background:var(--hi);color:var(--hi-ink);font-weight:700;border-radius:6px;padding:2px 10px;font-size:.85rem}
+.results{list-style:none;margin:0;padding:0}
+.results li{display:grid;grid-template-columns:1fr auto;gap:4px 12px;padding:10px 0;border-top:1px solid var(--line)}
+.results li:first-child{border-top:0}
+.results small{grid-column:1/-1;color:var(--muted)}
+
+/* drill shell */
+.drill-top{display:flex;justify-content:space-between;align-items:flex-end;gap:12px}
+.drill-top h2{font-size:1.5rem}
+.score{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.score b{font-size:2rem;display:block;line-height:1}
+.score small{color:var(--muted);font-size:.75rem}
+.clock{height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+.clock i{display:block;height:100%;background:var(--accent);transform-origin:left;transition:transform .1s linear}
+.clock.low i{background:var(--bad)}
+.clock-row{display:flex;justify-content:space-between;align-items:center;font-size:.85rem;color:var(--muted)}
+.clock-row .ghost{padding:6px 12px;font-size:.85rem}
+.play{min-height:360px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;border-radius:14px;padding:20px 8px;background:var(--surface);border:1px solid var(--line)}
+.play.good{animation:okflash .35s}
+.play.bad{animation:badflash .35s}
+@keyframes okflash{0%{box-shadow:inset 0 0 0 3px var(--good)}100%{box-shadow:inset 0 0 0 3px transparent}}
+@keyframes badflash{0%{box-shadow:inset 0 0 0 3px var(--bad)}100%{box-shadow:inset 0 0 0 3px transparent}}
+.status{margin:0;color:var(--muted);font-weight:700;min-height:1.5em;text-align:center}
+.prompt{font-size:clamp(2rem,9vw,3.2rem);font-weight:700;text-align:center;min-height:1.3em;word-break:break-all}
+.answer{font-size:1.8rem;text-align:center;width:min(100%,260px);padding:10px;border-radius:10px;border:2px solid var(--line);background:var(--bg);color:var(--ink)}
+.answer-row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;align-items:center}
+.sub{display:flex;gap:10px}
+
+/* drill specifics */
+.tint-grid{display:grid;gap:6px;width:min(100%,380px);aspect-ratio:1}
+.tint{border:0;border-radius:8px;padding:0}
+.tint.no{animation:shake .3s}
+@keyframes shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.schulte{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;width:min(100%,400px)}
+.cell{aspect-ratio:1;border:1px solid var(--line);background:var(--bg);border-radius:8px;font-size:clamp(1.1rem,5vw,1.5rem);font-weight:700;color:var(--ink)}
+.cell.hit{color:var(--muted);opacity:.35}
+.cell.miss{animation:shake .3s;border-color:var(--bad)}
+.stroop-word{background:var(--tile);border-radius:12px;padding:28px 12px;width:min(100%,420px);text-align:center;font-family:var(--f-display);font-stretch:125%;font-weight:900;font-size:clamp(2.4rem,11vw,3.6rem);min-height:1.6em;line-height:1.1}
+.choices{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;width:min(100%,420px)}
+.choice{display:flex;align-items:center;gap:10px;padding:14px;border:1px solid var(--line);border-radius:10px;background:var(--bg);font-weight:700}
+.choice kbd{margin-left:auto}
+.sw{width:18px;height:18px;border-radius:50%;flex:none}
+.mem-grid{display:grid;gap:6px;width:min(100%,380px);aspect-ratio:1}
+.mcell{border:1px solid var(--line);border-radius:8px;background:var(--bg);padding:0}
+.mcell.lit{background:var(--accent);border-color:var(--accent)}
+.mcell.ok{background:var(--good);border-color:var(--good)}
+.mcell.no{background:var(--bad);border-color:var(--bad)}
+.mcell.missed{box-shadow:inset 0 0 0 3px var(--accent)}
+.lives{display:flex;gap:6px;align-items:center}
+.life{width:12px;height:12px;border-radius:50%;border:2px solid var(--muted)}
+.life.on{background:var(--bad);border-color:var(--bad)}
+.nb-letter{width:150px;height:150px;border-radius:16px;background:var(--tile);color:var(--tile-ink);display:flex;align-items:center;justify-content:center;font-size:4.5rem;font-weight:700}
+.seq{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.seq span{min-width:3.2rem;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);text-align:center;font-size:1.3rem;font-weight:700}
+.seq span.q{border-style:dashed;color:var(--accent)}
+.letters{display:flex;gap:8px}
+.letters span{width:clamp(2.6rem,13vw,3.4rem);aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:8px;background:var(--tile);color:var(--tile-ink);font-family:var(--f-display);font-stretch:110%;font-weight:800;font-size:1.6rem}
+.reveal{color:var(--bad);font-weight:700;min-height:1.5em;margin:0}
+
+@media (max-width:480px){
+  .card{padding:16px}
+  .days{gap:3px}
+  .stations li{grid-template-columns:2rem 1fr auto}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<main class="wrap" id="stage"></main>
+
+<script>
+(function(){
+"use strict";
+/* ---------- storage (per-browser, optional) ---------- */
+const KEY="brainCircuit.v1";
+function load(){try{const d=JSON.parse(localStorage.getItem(KEY)||"null");return d&&typeof d==="object"?d:{}}catch(e){return {}}}
+const DB=Object.assign({days:{},best:{},progress:null},load());
+function save(){try{localStorage.setItem(KEY,JSON.stringify(DB))}catch(e){}}
+
+/* ---------- helpers ---------- */
+const $=(s,r=document)=>r.querySelector(s);
+const pad=n=>String(n).padStart(2,"0");
+const dkey=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const todayKey=()=>dkey(new Date());
+const fmt=ms=>{const s=Math.ceil(ms/1000);return `${Math.floor(s/60)}:${pad(s%60)}`};
+function hash(s){let h=1779033703^s.length;for(let i=0;i<s.length;i++){h=Math.imul(h^s.charCodeAt(i),3432918353);h=h<<13|h>>>19}return h>>>0}
+function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function R(seed){const f=mulberry(typeof seed==="number"?seed:hash(seed));return{
+  f,int:(a,b)=>a+Math.floor(f()*(b-a+1)),pick:a=>a[Math.floor(f()*a.length)],
+  shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(f()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}}}
+
+const WORDS=("about above actor adult agent alarm album alert alive angle apple arena argue award beach begin bench birth black blade blank blend block blood board bonus brain brand brave bread brick brief bring broad brown brush build cabin cable candy cargo carry chain chalk charm chart chase cheap check chess chest chief child claim class clean clear climb clock cloud coach coast color couch count court cover craft crane crash cream crowd crown curve cycle daily dance delay depth dirty doubt dozen draft drama dream dress drink drive eager early earth eight elbow empty enjoy enter entry equal event exact extra faith false fancy feast fence field fifty final flame flash fleet float flock floor fluid focus force forge frame fresh front frost fruit giant glass globe glory grace grade grain grand grant grape grass great green grill group guard guess guide habit happy heart heavy honey horse hotel house human humor ideal image index inner input issue jelly joint judge juice knife label laser laugh layer learn lemon level light limit liver local logic loose lucky lunch magic major maker march match mayor medal metal minor model money month moral motor mount mouse mouth movie music nerve never night noble noise north novel nurse ocean offer olive onion opera orbit order other outer owner paint panel paper party pasta patch peace pearl phone photo piano piece pilot pitch pizza place plain plane plant plate point power press price pride prime print prize proof proud pulse punch queen quick quiet quilt radio raise range rapid ratio reach ready relax reply rider ridge right river roast robot rough round route royal rural salad sauce scale scene scope score sense serve seven shade shape share sharp sheep shelf shell shift shine shirt short sight skill sleep slice slope small smart smile smoke snack solid sound south space spare speak speed spend spice spine spoon sport staff stage stamp stand start state steam steel stick stone storm story stove strip sugar sunny sweet table taste teach thank theme thick thing think three throw tiger title toast today topic total touch tower track trade train treat trend trial tribe truck trust truth twist uncle under unity upper urban usual valid value video visit vital vivid voice water whale wheat wheel white whole world worth write youth zebra").split(" ");
+const WSET=new Set(WORDS);
+const sortKey=w=>[...w].sort().join("");
+
+/* ---------- drills ----------
+   Each run(c) builds its UI inside c.play and returns {result:()=>({pts,detail})}.
+   c.after / c.every / c.on are cleaned up automatically when the drill ends. */
+const GAMES={
+math:{name:"Mental Math",domain:"Speed",secs:120,est:2,limit:"2 min",
+  blurb:"Answer as many arithmetic problems as you can.",
+  how:["Type the answer. A correct answer moves on by itself.","Press Enter to skip a problem, or to submit a wrong one.","Problems get harder every 5 correct answers."],
+  run(c){
+    c.play.innerHTML=`<div class="prompt mono" id="q" aria-live="polite"></div>
+      <input id="ans" class="answer mono" inputmode="numeric" autocomplete="off" aria-label="Your answer">
+      <div class="sub"><button class="ghost" id="skip" type="button">Skip</button></div>`;
+    const q=$("#q",c.play),inp=$("#ans",c.play);
+    let right=0,wrong=0,pts=0,ans=0;
+    const lvl=()=>Math.min(3,Math.floor(right/5));
+    function next(){
+      const L=lvl(),r=c.r,ops=L===0?["+","−"]:L===1?["+","−","×"]:["+","−","×","÷"],op=r.pick(ops);
+      const span=[[2,20],[8,60],[15,99],[40,300]][L];let a,b;
+      if(op==="+"){a=r.int(...span);b=r.int(...span);ans=a+b}
+      else if(op==="−"){b=r.int(...span);a=b+r.int(...span);ans=a-b}
+      else{const m=[[2,9,2,9],[2,9,2,9],[2,12,2,12],[6,19,3,9]][L],x=r.int(m[0],m[1]),y=r.int(m[2],m[3]);
+        if(op==="×"){a=x;b=y;ans=x*y}else{a=x*y;b=y;ans=x}}
+      q.textContent=`${a} ${op} ${b}`;inp.value="";inp.focus();
+    }
+    c.on(inp,"input",()=>{inp.value=inp.value.replace(/\D/g,"");
+      if(inp.value===String(ans)){pts+=10+2*lvl();right++;c.score(pts);c.flash("good");next()}});
+    c.on(inp,"keydown",e=>{if(e.key!=="Enter")return;e.preventDefault();
+      if(inp.value!==""){wrong++;pts=Math.max(0,pts-3);c.score(pts);c.flash("bad")}next()});
+    c.on($("#skip",c.play),"click",next);
+    next();
+    return{result:()=>({pts,detail:`${right} correct · ${wrong} wrong · reached level ${lvl()+1}`})};
+  }},
+
+tint:{name:"Odd Shade",domain:"Speed",secs:75,est:1.25,limit:"75 sec",
+  blurb:"Spot the one tile that is a slightly different shade.",
+  how:["Tap the tile that doesn’t match the rest.","The grid grows and the difference shrinks as you go.","A wrong tap costs 3 points."],
+  run(c){
+    c.play.innerHTML=`<p class="status" id="st">Find the odd one</p><div class="tint-grid" id="g"></div>`;
+    const g=$("#g",c.play),st=$("#st",c.play);
+    let found=0,pts=0,miss=0,odd=0,n=2;
+    function board(){
+      n=Math.min(7,2+Math.floor(found/3));const r=c.r,h=r.int(0,359),s=r.int(45,75),l=r.int(42,60);
+      const d=Math.max(3,20-found*1.1)*(r.f()<.5?-1:1);odd=r.int(0,n*n-1);
+      g.style.gridTemplateColumns=`repeat(${n},1fr)`;
+      g.innerHTML=Array.from({length:n*n},(_,i)=>`<button class="tint" data-i="${i}" style="background:hsl(${h} ${s}% ${i===odd?l+d:l}%)" aria-label="Tile ${i+1}"></button>`).join("");
+      st.textContent=`${n} × ${n} · ${found} found`;
+    }
+    c.on(g,"click",e=>{const b=e.target.closest(".tint");if(!b)return;
+      if(+b.dataset.i===odd){found++;pts+=5+n;c.flash("good");board()}
+      else{miss++;pts=Math.max(0,pts-3);c.flash("bad");b.classList.remove("no");void b.offsetWidth;b.classList.add("no")}
+      c.score(pts)});
+    board();
+    return{result:()=>({pts,detail:`${found} found · ${miss} wrong taps · largest grid ${n} × ${n}`})};
+  }},
+
+schulte:{name:"Number Hunt",domain:"Attention",secs:180,est:2,limit:"up to 3 min",
+  blurb:"Find the numbers 1 to 25 in order, as fast as you can.",
+  how:["Tap 1, then 2, then 3, all the way to 25.","There are 3 tables. Faster tables score more.","Keep your eyes near the centre and let your peripheral vision do the searching."],
+  run(c){
+    c.play.innerHTML=`<p class="status" id="st"></p><div class="schulte" id="g"></div>`;
+    const g=$("#g",c.play),st=$("#st",c.play);
+    let table=0,next=1,pts=0,t0=0,errs=0;const times=[];
+    const upd=()=>{st.textContent=`Table ${table+1} of 3 · find ${next}`};
+    function build(){next=1;
+      g.innerHTML=c.r.shuffle(Array.from({length:25},(_,i)=>i+1)).map(n=>`<button class="cell mono" data-n="${n}">${n}</button>`).join("");
+      t0=performance.now();upd()}
+    c.on(g,"click",e=>{const b=e.target.closest(".cell");if(!b||b.disabled)return;
+      if(+b.dataset.n!==next){errs++;b.classList.remove("miss");void b.offsetWidth;b.classList.add("miss");return}
+      b.classList.add("hit");b.disabled=true;next++;
+      if(next<=25){upd();return}
+      const t=(performance.now()-t0)/1000;times.push(t);pts+=Math.max(10,Math.round(100-2*t));c.score(pts);table++;
+      if(table===3){c.done();return}
+      c.flash("good");build()});
+    build();
+    return{result:()=>{const partial=table<3?next-1:0;
+      return{pts:pts+partial,detail:(times.length?`Tables: ${times.map(t=>t.toFixed(1)+" s").join(", ")}`:`Reached ${next-1} of 25`)+` · ${errs} wrong taps`}}};
+  }},
+
+stroop:{name:"Colour Clash",domain:"Attention",secs:90,est:1.5,limit:"90 sec",
+  blurb:"Name the ink colour, not the word.",
+  how:["A colour word appears, printed in a coloured ink.","Tap the button for the ink colour, or press keys 1 to 4.","Wrong answers cost 5 points, so accuracy beats speed."],
+  run(c){
+    const C=[["Red","#EF4B4F"],["Blue","#5A8BFF"],["Green","#36BA76"],["Yellow","#F4C53D"]];
+    c.play.innerHTML=`<div class="stroop-word" id="w" aria-live="polite"></div>
+      <div class="choices" id="ch">${C.map((x,i)=>`<button class="choice" data-i="${i}"><span class="sw" style="background:${x[1]}"></span>${x[0]}<kbd>${i+1}</kbd></button>`).join("")}</div>`;
+    const w=$("#w",c.play);
+    let ink=0,pts=0,right=0,wrong=0,t0=0,ready=false;const rts=[];
+    function next(){ready=false;w.textContent="";
+      c.after(150,()=>{const word=c.r.int(0,3);ink=c.r.f()<.25?word:(word+c.r.int(1,3))%4;
+        w.textContent=C[word][0].toUpperCase();w.style.color=C[ink][1];w.setAttribute("aria-label",`${C[word][0]} written in ${C[ink][0]}`);t0=performance.now();ready=true})}
+    function answer(i){if(!ready)return;
+      if(i===ink){right++;pts+=5;rts.push(performance.now()-t0);c.flash("good")}
+      else{wrong++;pts=Math.max(0,pts-5);c.flash("bad")}
+      c.score(pts);next()}
+    c.on($("#ch",c.play),"click",e=>{const b=e.target.closest(".choice");if(b)answer(+b.dataset.i)});
+    c.keys(e=>{const k=+e.key;if(k>=1&&k<=4){e.preventDefault();answer(k-1)}});
+    next();
+    return{result:()=>{const avg=rts.length?Math.round(rts.reduce((a,b)=>a+b,0)/rts.length):0;
+      return{pts,detail:`${right} right · ${wrong} wrong${avg?` · average ${avg} ms`:""}`}}};
+  }},
+
+grid:{name:"Pattern Recall",domain:"Memory",secs:180,est:2.5,limit:"up to 3 min",
+  blurb:"Memorise which tiles light up, then tap them all.",
+  how:["Watch the tiles that light up.","When they go dark, tap every one of them, in any order.","Each success adds a tile. Three mistakes end the drill."],
+  run(c){
+    c.play.innerHTML=`<p class="status" id="st"></p><div class="mem-grid" id="g"></div><div class="lives" id="lv"></div>`;
+    const g=$("#g",c.play),st=$("#st",c.play),lv=$("#lv",c.play);
+    let n=3,lives=3,pts=0,best=0,input=false,pat=new Set(),found=new Set();
+    const drawLives=()=>{lv.innerHTML=[0,1,2].map(i=>`<span class="life ${i<lives?"on":""}"></span>`).join("")+`<span class="sr">${lives} lives left</span>`};
+    function round(){
+      const s=n<=5?4:n<=9?5:6;g.style.gridTemplateColumns=`repeat(${s},1fr)`;
+      g.innerHTML=Array.from({length:s*s},(_,i)=>`<button class="mcell" data-i="${i}" aria-label="Tile ${i+1}"></button>`).join("");
+      pat=new Set(c.r.shuffle([...Array(s*s).keys()]).slice(0,n));found=new Set();input=false;
+      st.textContent=`Memorise ${n} tiles`;drawLives();
+      c.after(500,()=>{pat.forEach(i=>g.children[i].classList.add("lit"));
+        c.after(900+n*180,()=>{pat.forEach(i=>g.children[i].classList.remove("lit"));input=true;st.textContent=`Tap the ${n} tiles`})});
+    }
+    c.on(g,"click",e=>{const b=e.target.closest(".mcell");if(!b||!input)return;const i=+b.dataset.i;if(found.has(i))return;
+      if(pat.has(i)){found.add(i);b.classList.add("ok");
+        if(found.size===n){input=false;pts+=n*2;best=n;c.score(pts);c.flash("good");st.textContent="Correct";n++;c.after(700,round)}}
+      else{input=false;b.classList.add("no");pat.forEach(j=>{if(!found.has(j))g.children[j].classList.add("missed")});
+        lives--;drawLives();c.flash("bad");st.textContent=lives?"Not quite. Same size again.":"Out of lives";
+        c.after(1300,()=>lives?round():c.done())}});
+    round();
+    return{result:()=>({pts,detail:best?`Largest pattern recalled: ${best} tiles`:"No pattern completed yet"})};
+  }},
+
+digits:{name:"Digit Span",domain:"Memory",secs:180,est:2.5,limit:"up to 3 min",
+  blurb:"Hold a growing string of digits in your head.",
+  how:["Digits flash one at a time.","Type them back in the same order and press Enter.","Each success adds a digit. Three mistakes end the drill."],
+  run(c){
+    c.play.innerHTML=`<p class="status" id="st"></p><div class="prompt mono" id="d" aria-live="polite"></div>
+      <form id="f" class="answer-row" hidden><input id="ans" class="answer mono" inputmode="numeric" autocomplete="off" aria-label="Digits in order"><button class="btn">Check</button></form>
+      <div class="lives" id="lv"></div>`;
+    const st=$("#st",c.play),d=$("#d",c.play),f=$("#f",c.play),ans=$("#ans",c.play),lv=$("#lv",c.play);
+    let len=4,lives=3,best=0,seq=[];
+    const drawLives=()=>{lv.innerHTML=[0,1,2].map(i=>`<span class="life ${i<lives?"on":""}"></span>`).join("")+`<span class="sr">${lives} lives left</span>`};
+    function round(){
+      f.hidden=true;drawLives();st.textContent=`Watch ${len} digits`;d.textContent="";seq=[];
+      for(let i=0;i<len;i++){let x;do{x=c.r.int(0,9)}while(x===seq[i-1]);seq.push(x)}
+      seq.forEach((x,i)=>{c.after(600+i*1000,()=>{d.textContent=x});c.after(1350+i*1000,()=>{d.textContent=""})});
+      c.after(600+len*1000,()=>{st.textContent="Type them in order";f.hidden=false;ans.value="";ans.focus()});
+    }
+    c.on(f,"submit",e=>{e.preventDefault();const v=ans.value.replace(/\D/g,"");if(!v)return;f.hidden=true;d.textContent=seq.join("");
+      if(v===seq.join("")){best=Math.max(best,len);c.score(best*10);c.flash("good");st.textContent="Correct";len++;c.after(900,round)}
+      else{lives--;drawLives();c.flash("bad");st.textContent=lives?"Not quite. The digits were:":"Out of lives. The digits were:";
+        c.after(1800,()=>lives?round():c.done())}});
+    round();
+    return{result:()=>({pts:best*10,detail:best?`Longest span: ${best} digits`:"No span completed yet"})};
+  }},
+
+nback:{name:"Two Back",domain:"Working memory",secs:84,est:1.5,limit:"80 sec",
+  blurb:"Spot when a letter matches the one from two steps ago.",
+  how:["Letters appear one at a time, every 2 seconds.","Press Match (or the space bar) when the letter is the same as the one shown two letters earlier.","Do nothing otherwise. False alarms cost points."],
+  run(c){
+    const L="BFHKMQRT".split(""),N=40,seq=[];
+    for(let i=0;i<N;i++){if(i>=2&&c.r.f()<.3)seq.push(seq[i-2]);else{let x;do{x=c.r.pick(L)}while(i>=2&&x===seq[i-2]);seq.push(x)}}
+    c.play.innerHTML=`<p class="status" id="st">Get ready</p><div class="nb-letter" id="l" aria-live="polite"></div>
+      <button class="btn wide" id="m" type="button">Match<kbd>Space</kbd></button>`;
+    const st=$("#st",c.play),l=$("#l",c.play);
+    let i=-1,resp=false,hits=0,miss=0,fa=0;
+    const isT=k=>k>=2&&seq[k]===seq[k-2];
+    const pts=()=>Math.max(0,hits*8-fa*4);
+    function step(){if(i>=0&&isT(i)&&!resp)miss++;i++;if(i>=N){c.done();return}
+      resp=false;l.textContent=seq[i];st.textContent=`${i+1} of ${N}`;
+      c.after(1500,()=>{l.textContent=""});c.after(2000,step)}
+    function press(){if(i<0||resp)return;resp=true;
+      if(isT(i)){hits++;c.flash("good")}else{fa++;c.flash("bad")}c.score(pts())}
+    c.on($("#m",c.play),"click",press);
+    c.keys(e=>{if(e.code==="Space"||e.key==="m"||e.key==="M"){e.preventDefault();press()}});
+    c.after(1200,step);
+    return{result:()=>({pts:pts(),detail:`${hits} of ${hits+miss} matches caught · ${fa} false alarms`})};
+  }},
+
+seq:{name:"Number Patterns",domain:"Logic",secs:150,est:2.5,limit:"2½ min",
+  blurb:"Work out the rule and give the next number.",
+  how:["Each row follows a rule: adding, multiplying, alternating and more.","Type the next number. A correct answer moves on by itself.","Press Enter to check a wrong answer: it costs 3 points and shows the answer."],
+  run(c){
+    const make=(f,n=5)=>({terms:Array.from({length:n},(_,i)=>f(i)),next:f(n)});
+    const KINDS=[
+      r=>{const a=r.int(1,30),d=r.int(2,12);return make(i=>a+d*i)},
+      r=>{const a=r.int(60,120),d=r.int(3,9);return make(i=>a-d*i)},
+      r=>{const a=r.int(1,5),q=r.int(2,3);return make(i=>a*q**i)},
+      r=>{const a=r.int(1,10),d=r.int(1,4),k=r.int(1,3);return make(i=>a+d*i+k*i*(i-1)/2)},
+      r=>{const x=r.int(3,9),y=r.int(1,x-1),a=r.int(2,20);return make(i=>a+Math.ceil(i/2)*x-Math.floor(i/2)*y)},
+      r=>{const s=r.int(1,6),k=r.int(0,5);return make(i=>(s+i)**2+k)},
+      r=>{const t=[r.int(1,5),r.int(1,6)];while(t.length<6)t.push(t[t.length-1]+t[t.length-2]);return{terms:t.slice(0,5),next:t[5]}},
+      r=>{const a=r.int(1,4);return make(i=>{let v=a;for(let j=0;j<i;j++)v=v*2+1;return v})},
+      r=>{const a=r.int(1,9),d1=r.int(2,6),b=r.int(30,50),d2=r.int(2,5);return make(i=>i%2===0?a+d1*(i/2):b-d2*((i-1)/2),6)}
+    ];
+    c.play.innerHTML=`<p class="status" id="st">What comes next?</p><div class="seq mono" id="s"></div>
+      <input id="ans" class="answer mono" inputmode="numeric" autocomplete="off" aria-label="Next number">
+      <p class="reveal" id="rv" aria-live="polite"></p><div class="sub"><button class="ghost" id="skip" type="button">Skip</button></div>`;
+    const s=$("#s",c.play),inp=$("#ans",c.play),rv=$("#rv",c.play);
+    let right=0,wrong=0,pts=0,cur=null,lock=false;
+    function next(){const avail=KINDS.slice(0,Math.min(KINDS.length,3+2*Math.floor(right/3)));cur=c.r.pick(avail)(c.r);
+      s.innerHTML=cur.terms.map(t=>`<span>${t}</span>`).join("")+`<span class="q">?</span>`;inp.value="";rv.textContent="";lock=false;inp.focus()}
+    function reveal(){lock=true;rv.textContent=`Answer: ${cur.next}`;c.after(1500,next)}
+    c.on(inp,"input",()=>{inp.value=inp.value.replace(/\D/g,"");
+      if(!lock&&inp.value===String(cur.next)){right++;pts+=10;c.score(pts);c.flash("good");next()}});
+    c.on(inp,"keydown",e=>{if(e.key!=="Enter"||lock)return;e.preventDefault();if(inp.value==="")return;
+      wrong++;pts=Math.max(0,pts-3);c.score(pts);c.flash("bad");reveal()});
+    c.on($("#skip",c.play),"click",()=>{if(!lock)reveal()});
+    next();
+    return{result:()=>({pts,detail:`${right} solved · ${wrong} wrong`})};
+  }},
+
+anagram:{name:"Word Unscramble",domain:"Logic",secs:150,est:2.5,limit:"2½ min",
+  blurb:"Rearrange five letters into an English word.",
+  how:["Type the word the letters spell. A correct word moves on by itself.","Any common word that uses all five letters counts.","Stuck? Skip shows the answer."],
+  run(c){
+    c.play.innerHTML=`<div class="letters" id="lt" aria-live="polite"></div>
+      <input id="ans" class="answer mono" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="5" aria-label="Your word">
+      <p class="reveal" id="rv" aria-live="polite"></p><div class="sub"><button class="ghost" id="skip" type="button">Skip</button></div>`;
+    const lt=$("#lt",c.play),inp=$("#ans",c.play),rv=$("#rv",c.play);
+    const pool=c.r.shuffle(WORDS);let k=0,word="",solved=0,skipped=0,pts=0,lock=false;
+    function next(){word=pool[k++%pool.length];let sc;
+      do{sc=c.r.shuffle([...word]).join("")}while(sc===word||WSET.has(sc));
+      lt.innerHTML=[...sc].map(ch=>`<span>${ch.toUpperCase()}</span>`).join("");
+      inp.value="";rv.textContent="";lock=false;inp.focus()}
+    c.on(inp,"input",()=>{const v=inp.value.toLowerCase().replace(/[^a-z]/g,"");inp.value=v;
+      if(!lock&&v.length===5&&sortKey(v)===sortKey(word)&&WSET.has(v)){solved++;pts+=10;c.score(pts);c.flash("good");next()}});
+    c.on($("#skip",c.play),"click",()=>{if(lock)return;lock=true;skipped++;rv.textContent=`It was ${word.toUpperCase()}`;c.after(1300,next)});
+    next();
+    return{result:()=>({pts,detail:`${solved} words · ${skipped} skipped`})};
+  }}
+};
+
+/* One drill per brain domain, chosen by the date so everyone's day is the same. */
+const PLAN=[["Speed",["math","tint"]],["Attention",["schulte","stroop"]],["Memory",["grid","digits"]],["Working memory",["nback"]],["Logic",["seq","anagram"]]];
+function dailyPlan(date){const r=R("plan:"+date);return PLAN.map(([,ids])=>r.pick(ids))}
+const estMinutes=ids=>Math.round(ids.reduce((s,id)=>s+GAMES[id].est+.4,0));
+
+function streak(){const d=new Date();if(!DB.days[dkey(d)])d.setDate(d.getDate()-1);let n=0;while(DB.days[dkey(d)]){n++;d.setDate(d.getDate()-1)}return n}
+
+/* ---------- screens ---------- */
+const stage=$("#stage");
+let keyHandler=null,active=null,session=null;
+document.addEventListener("keydown",e=>{if(keyHandler)keyHandler(e)});
+function show(html){if(active){active.abort();active=null}keyHandler=null;stage.innerHTML=html;window.scrollTo(0,0)}
+
+function home(){
+  const t=todayKey(),plan=dailyPlan(t),done=DB.days[t];
+  const prog=DB.progress&&DB.progress.date===t?DB.progress:null,at=done?plan.length:prog?prog.idx:0;
+  const s=streak(),now=new Date();
+  const days=Array.from({length:14},(_,i)=>{const d=new Date(now);d.setDate(d.getDate()-13+i);const k=dkey(d),rec=DB.days[k];
+    return `<div class="day ${rec?"on":""} ${i===13?"now":""}" title="${d.toDateString()}${rec?` · ${rec.total} pts`:""}"><i></i>${"SMTWTFS"[d.getDay()]}</div>`}).join("");
+  const label=done?`Done today · ${done.total} pts`:prog?`Continue from station ${at+1}`:"Start today’s circuit";
+  show(`
+  <header class="top">
+    <div class="brand display">BRAIN<br><span>CIRCUIT</span></div>
+    <div class="today"><span class="muted">${now.toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long"})}</span>
+      <span class="streak ${s?"":"zero"}">${s?`${s}-day streak`:"No streak yet"}</span></div>
+  </header>
+  <section class="card">
+    <div class="card-head"><h1>Today’s circuit</h1><span class="muted mono">${plan.length} stations · about ${estMinutes(plan)} min</span></div>
+    <ol class="stations">${plan.map((id,i)=>{const g=GAMES[id],b=DB.best[id];
+      return `<li class="${i<at?"done":i===at?"next":""}"><span class="num">${i<at?"✓":i+1}</span>
+        <div><strong>${g.name}</strong><span class="meta">${g.domain} · ${g.limit}</span></div>
+        <span class="best mono">${b!=null?`<b>${b}</b>best`:"new"}</span></li>`}).join("")}</ol>
+    <button class="btn big" id="start">${label}${done?"":"<kbd>Enter</kbd>"}</button>
+    ${done?`<button class="ghost" id="again">Run today’s circuit again for practice</button>`:""}
+  </section>
+  <section class="card">
+    <div class="card-head"><h2 class="section-title">Last 14 days</h2><span class="muted mono">${Object.keys(DB.days).length} circuits completed</span></div>
+    <div class="days">${days}</div>
+  </section>
+  <section class="card">
+    <div class="card-head"><h2 class="section-title">Practise one drill</h2><span class="muted">Doesn’t count toward today</span></div>
+    <div class="practice">${Object.entries(GAMES).map(([id,g])=>`<button data-id="${id}">${g.name}<small>${g.domain}</small></button>`).join("")}</div>
+  </section>`);
+  const go=()=>{if(done)return;session={mode:"daily",date:t,queue:plan,idx:prog?prog.idx:0,results:prog?prog.results.slice():[]};intro()};
+  $("#start").onclick=go;
+  if(done)$("#again").onclick=()=>{session={mode:"replay",date:t,queue:plan,idx:0,results:[]};intro()};
+  keyHandler=e=>{if(e.key==="Enter"&&!done&&e.target===document.body){e.preventDefault();go()}};
+  stage.querySelector(".practice").onclick=e=>{const b=e.target.closest("button");if(!b)return;
+    session={mode:"free",date:t,queue:[b.dataset.id],idx:0,results:[]};intro()};
+}
+
+const stationLabel=()=>session.mode==="free"?"Practice":`Station ${session.idx+1} of ${session.queue.length}`;
+
+function intro(){
+  const id=session.queue[session.idx],g=GAMES[id],b=DB.best[id];
+  show(`<section class="card intro">
+    <div class="eyebrow">${stationLabel()} · ${g.domain}</div>
+    <h2 class="display">${g.name}</h2>
+    <p class="lede">${g.blurb}</p>
+    <ul class="how">${g.how.map(h=>`<li>${h}</li>`).join("")}</ul>
+    <div class="facts"><span>Time: <b>${g.limit}</b></span><span>Your best: <b class="mono">${b!=null?b:"none yet"}</b></span></div>
+    <div class="actions"><button class="btn" id="go">Start drill<kbd>Enter</kbd></button><button class="ghost" id="back">Back to home</button></div>
+  </section>`);
+  $("#go").onclick=runDrill;$("#back").onclick=home;$("#go").focus();
+  keyHandler=e=>{if(e.key==="Enter"&&e.target===document.body){e.preventDefault();runDrill()}};
+}
+
+function runDrill(){
+  const id=session.queue[session.idx],g=GAMES[id];
+  const rng=session.mode==="free"?R((Date.now()^Math.floor(Math.random()*1e9))>>>0):R(session.date+":"+id);
+  show(`<section class="drill" style="display:flex;flex-direction:column;gap:12px">
+    <div class="drill-top"><div><div class="eyebrow">${stationLabel()} · ${g.domain}</div><h2 class="display">${g.name}</h2></div>
+      <div class="score"><b id="score">0</b><small>points</small></div></div>
+    <div class="clock" id="clock"><i id="fill"></i></div>
+    <div class="clock-row"><span class="mono" id="clockTxt">${fmt(g.secs*1000)} left</span><button class="ghost" id="end" type="button">End drill</button></div>
+    <div class="play" id="play"></div>
+  </section>`);
+  const play=$("#play"),scoreEl=$("#score"),fill=$("#fill"),clock=$("#clock"),clockTxt=$("#clockTxt");
+  const ac=new AbortController(),timers=[];let finished=false;
+  const c={r:rng,play,
+    on:(t,ev,fn)=>t.addEventListener(ev,fn,{signal:ac.signal}),
+    after(ms,fn){const h=setTimeout(()=>{if(!finished)fn()},ms);timers.push(()=>clearTimeout(h))},
+    every(ms,fn){const h=setInterval(fn,ms);timers.push(()=>clearInterval(h))},
+    score:n=>{scoreEl.textContent=n},
+    flash(k){play.classList.remove("good","bad");void play.offsetWidth;play.classList.add(k)},
+    keys:fn=>{keyHandler=fn},
+    done:()=>finish()};
+  active={abort(){finished=true;ac.abort();timers.forEach(f=>f())}};
+  const api=g.run(c);
+  const start=performance.now(),total=g.secs*1000;
+  c.every(100,()=>{const left=Math.max(0,total-(performance.now()-start));
+    fill.style.transform=`scaleX(${left/total})`;clockTxt.textContent=`${fmt(left)} left`;clock.classList.toggle("low",left<10000);
+    if(left<=0)finish()});
+  $("#end").onclick=finish;
+  function finish(){if(finished)return;const res=api.result();active.abort();active=null;afterDrill(id,res)}
+}
+
+function afterDrill(id,res){
+  const g=GAMES[id],prev=DB.best[id],isBest=res.pts>0&&(prev==null||res.pts>prev);
+  if(isBest)DB.best[id]=res.pts;
+  const s=session;
+  if(s.mode!=="free"){s.results.push({id,pts:res.pts,detail:res.detail});s.idx++}
+  if(s.mode==="daily"){
+    if(s.idx>=s.queue.length){DB.days[s.date]={total:s.results.reduce((a,r)=>a+r.pts,0),results:s.results.map(r=>({id:r.id,pts:r.pts}))};DB.progress=null}
+    else DB.progress={date:s.date,idx:s.idx,results:s.results};
+  }
+  save();
+  const more=s.mode!=="free"&&s.idx<s.queue.length;
+  const nextLabel=s.mode==="free"?"Play again":more?`Next: ${GAMES[s.queue[s.idx]].name}`:"See today’s results";
+  show(`<section class="card">
+    <div class="eyebrow">${g.domain} · ${g.name}</div>
+    <div class="bigscore">${res.pts}<span class="muted" style="font-size:.3em;font-stretch:100%"> pts</span></div>
+    <p class="lede">${res.detail}</p>
+    <div>${isBest?`<span class="pb">New personal best</span>`:prev!=null?`<span class="muted">Your best is ${prev} pts</span>`:""}</div>
+    <div class="actions"><button class="btn" id="next">${nextLabel}<kbd>Enter</kbd></button><button class="ghost" id="home">${s.mode==="daily"&&more?"Pause and go home":"Back to home"}</button></div>
+  </section>`);
+  const next=()=>{if(s.mode==="free"){s.idx=0;intro()}else if(more)intro();else summary()};
+  $("#next").onclick=next;$("#home").onclick=home;$("#next").focus();
+  keyHandler=e=>{if(e.key==="Enter"&&e.target===document.body){e.preventDefault();next()}};
+}
+
+function summary(){
+  const s=session,total=s.results.reduce((a,r)=>a+r.pts,0),st=streak();
+  show(`<section class="card">
+    <div class="eyebrow">${s.mode==="daily"?"Circuit complete":"Practice run complete"}</div>
+    <div class="bigscore">${total}<span class="muted" style="font-size:.3em;font-stretch:100%"> pts</span></div>
+    <p class="lede">${s.mode==="daily"?(st>1?`That’s a ${st}-day streak. Come back tomorrow for a new circuit.`:"Circuit done. Come back tomorrow for a new one."):"Practice runs don’t change today’s score."}</p>
+    <ul class="results">${s.results.map(r=>`<li><strong>${GAMES[r.id].name}</strong><span class="mono">${r.pts} pts</span><small>${r.detail}</small></li>`).join("")}</ul>
+    <div class="actions"><button class="btn" id="home">Back to home<kbd>Enter</kbd></button></div>
+  </section>`);
+  $("#home").onclick=home;$("#home").focus();
+}
+
+home();
+})();
+</script>
+
+</html>
